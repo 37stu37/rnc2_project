@@ -1,6 +1,6 @@
 Create prototype graph with the following properties:
 
 1) Hazards: Volcano -> Catchement -> Runout -> Flood -> Stopbanks -> Infrastructure
-2) 15 river nodes upstream of dam and 15 river nodes downstream of dam. Also with landslide and infrastructure nodes
+2) 10 river nodes upstream of dam and 10 river nodes downstream of dam. Also with landslide and infrastructure nodes
 3) Time and delay build in the algorithm with distribution as input
 4) the output should anticipate the time and magnitude of impact
