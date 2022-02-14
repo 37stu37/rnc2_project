@@ -5,6 +5,40 @@ using Graphs
 using GraphPlot
 using DataFrames, Random, Distributions
 
+begin
+    df = DataFrame(source = ["river1", "river2", "river3", "river4", "river5",
+    "dam", "river6", "river7", "river8", "river9",
+    "landslide", "landslide", "river8", "catchment1", "catchment2"], 
+    target = ["river2", "river3", "river4", "river5",
+    "dam", "river6", "river7", "river8", "river9", "river10",
+    "river9", "infrastructure", "infrastructure", "river1", "river2"],
+    type_source= ["river", "river", "river", "river", "river",
+    "dam", "river", "river", "river", "river",
+    "landslide", "landslide", "river", "catchment", "catchment"],
+    type_target= ["river", "river", "river", "river",
+    "dam", "river", "river", "river", "river", "river1",
+    "river", "infrastructure", "infrastructure", "river", "river"],
+    source_ID = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11, 9, 13, 14],
+    target_ID = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 10, 12, 12, 1, 2],
+    edge_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 0, 0, 0, 0])
+
+    @. df.magnitude = 1000 # base discharge
+end
+
+# add base flow to river nodes
+df.magnitude +=1000
+# Create random temporal events
+landslide(x,y) = (x=="landslide") ? rand(Pareto(α, θ), 1)[1] : y
+df.magnitude = landslide.(df.type_source, df.magnitude)
+runoff(x,y)= (x=="catchment") ? rand(Pareto(α, θ), 1)[1] : y
+df.magnitude = runoff.(df.type_source, df.magnitude)
+
+
+# Create the next dataframe
+next = df[:, [:target, :magnitude]]
+d = outerjoin(df[:, Not(:magnitude)], next, on=[:source => :target], makeunique=true)
+
+
 
 # input
 begin
@@ -58,8 +92,8 @@ runoff(x) = (x=="catchment") ? rand(Pareto(α, θ), 1)[1] : 0
 rof = runoff.(df.type)
 
 # Create artificial landslide for each landslide source
-landslide(x) = (x=="landslide") ? rand(Pareto(α, θ), 1)[1] : 0
-ls = landslide.(df.type, df.magnitude)
+landslide(x,y) = (x=="landslide") ? rand(Pareto(α, θ), 1)[1] : y
+ls = landslide.(df.type_source, df.target)
 
 # Add magnitude to edges
 d.magnitude = rof .+ ls
