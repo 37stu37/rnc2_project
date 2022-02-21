@@ -14,49 +14,117 @@ begin
     "river9", "infrastructure", "infrastructure", "river1", "river2"],
     type_source= ["river", "river", "river", "river", "river",
     "dam", "river", "river", "river", "river",
-    "landslide", "landslide", "river", "catchment", "catchment"])
+    "landslide", "landslide", "river", "catchment", "catchment"],
+    magnitude = [1001.0, 1002.0, 1003.0, 1004.0, 1005.0, 1006.0, 1007.0, 1008.0, 1009.0, 1010.0, 0.0, 0.0, 1009.0, 0.0, 0.0])
     # type_target= ["river", "river", "river", "river",
     # "dam", "river", "river", "river", "river", "river1",
     # "river", "infrastructure", "infrastructure", "river", "river"],
     # source_ID = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11, 9, 13, 14],
     # target_ID = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 10, 12, 12, 1, 2],
     # edge_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 0, 0, 0, 0])
-
-    @. df.magnitude = ifelse((df.type_source == "river") | (df.type_source == "dam"), 1000.0, 0.0) # base discharge
-    @. df.delay = 1
-    @. df.time = 0
 end
 
 
-clock = []
-futures = []
-push!(clock, df)
+begin
+    clock = []
+    network = copy(df)
+    push!(clock, network)
+    past = clock[end]
+    start_time = 0
+    @. network.delay = 1
+    @. network.time = start_time
+end
 
-for time in 1:10
-    global last_df = clock[end] # last_df state of the network
+
+
+
+
+time = 2
+
+# # dealing with river nodes
+# singular_events = ["landslide", "catchment"]
+# past_event = filter([:type_source] => (x) -> ~(x in singular_events), past)
+# # present_event = filter([:type_source] => (x) -> ~(x in singular_events), network)
+# continuous_edges = innerjoin(network[:, Not([:magnitude, :delay, :time])], 
+#                     past_event[:, [:target, :magnitude, :delay, :time]], 
+#                     on=[:source=>:target], makeunique=true)
+
+# # dealing with landslide and catchment nodes
+# past_event = filter([:type_source] => (x) -> (x in singular_events), past)
+
+# discrete_edges = innerjoin(network[:, [:source, :target, :type_source]],
+#                     past_event[:, [:target, :magnitude, :delay, :time]], 
+#                     on=[:source => :target])
+
+# # concate dataframes together
+# network_t = vcat(continuous_edges, discrete_edges, past_event) # take into account several edges branching into one node
+# network_t = groupby(network_t, [:source, :target])
+# network_t = combine(network_t, :magnitude => sum)
+
+
+
+begin
+    clock = []
+    network = copy(df)
+    push!(clock, network)
+    past = clock[end]
+    start_time = 0
+    @. network.delay = 1
+    @. network.time = start_time
+end
+
+
+time = 2
+
+
+for edge in eachrow(network)
+    edge.time = time
+
+    if (edge.source in past.target) | (edge.type_source != "landslide")
+        println("Current edge Source : $(edge.source)")
+        println(edge)
+        past_event = past[past.target .== edge.source, :]
+        println("past_event")
+        println(past_event)
+        edge.magnitude = sum(past_event.magnitude)
+        edge.delay = time + 1
     
-    # update original network to be updated to current state
-    @. last_df.time = time
+    else 
+        if edge.delay == time
+            edge.magnitude = rand(Pareto(3, 1000))
+            edge.delay = time + 5 
+        end
+    end
+end
 
-    # Create random temporal events (here landslide volume and runoff) during the time interval if delay of the previous event is passed
-    @. last_df.magnitude = ifelse(((last_df.type_source == "landslide") | (last_df.type_source == "catchment")) & (last_df.delay == time), rand(Pareto(3, 1000)), last_df.magnitude)
+push!(clock, network)
 
-    # and reset delay depending on type (assuming runoff takes 2 time intervals) if passed
-    @. last_df.delay = ifelse((last_df.type_source == "catchment") & (last_df.delay == time), time + 2, last_df.delay)
 
-    # keep currently activating edge list & delayed node to the next time interval
-    global delayed = filter([:delay, :time] => (x,y) -> x>y, last_df) # keep delayed edges
-    delayed = delayed[:, [:source, :target, :type_source, :magnitude, :delay, :time]]
-    global current = filter([:delay, :time] => (x,y) -> x<=y, last_df) # keep active edges
-    current = current[:, [:source, :target, :type_source, :magnitude, :delay, :time]]
+for i in 1:nrow(network) # access the network one edge at a time
+    @. network.time = time
+    println("PRESENT")
+    println(network[[i], :])
 
-    current = vcat(current, delayed)
-    
-    # move active edges forward (target becomes source in the orginal dataset) based on their type
-    @. current.source = ifelse((current.type_source == "river") | (current.type_source == "dam"), current.target, current.source)
-    current = current[:, [:source, :type_source, :magnitude, :delay, :time]]
-    
-    # NEED TO GO BACK TO THE INITIAL NETWORK SETUP BUT WITH THE UPDATED MAGNITUDE DELAY TIME
+    # access previous events
+    past_event = past[past.target .== network.source[i], :]
+    println("PAST")
+    println(past_event)
 
-    push!(clock, current)
+    for j in 1:nrow(past_event)
+        addition = []
+        # if past event is landslide and time is due
+        if past_event.type_source[j] == "landslide" && (past_event.delay[j] == time)
+            network[[i], :] = past_event[[j], :] # copy past event to present event
+            network.magnitude[i] = rand(Pareto(3, 1000))
+            network.delay[i] = time + 5 # assuming landslide make 5 time units to impact
+
+        elseif past_event.type_source[j] == "landslide" && (past_event.delay[j] != time)
+            network[[i], :] = past_event[[j], :]# copy past event to present event as is
+            
+        elseif (past_event.type_source[j] != "landslide") && (past_event.delay[j] == time)
+            network.magnitude[i] += past_event.magnitude[j] # add flows from river and catchments
+
+
+
+    end
 end
