@@ -6,7 +6,7 @@ using GraphPlot
 using DataFrames, Random, Distributions
 
 begin
-    df = DataFrame(source = ["river1", "river2", "river3", "river4", "river5",
+    network = DataFrame(source = ["river1", "river2", "river3", "river4", "river5",
     "dam", "river6", "river7", "river8", "river9",
     "landslide", "landslide", "river8", "catchment1", "catchment2"], 
     target = ["river2", "river3", "river4", "river5",
@@ -27,104 +27,76 @@ end
 
 begin
     clock = []
-    network = copy(df)
     push!(clock, network)
     past = clock[end]
     start_time = 0
-    @. network.delay = 1
+    # @. network.delay = 1
     @. network.time = start_time
 end
 
 
+# using source type
+global_time = 0
+past = clock[end]
+present = []
+record = []
+
+# RIVERS & DAMS
+df = filter([:type_source] => (x) -> x=="river" || x=="dam", past)
+# past_df = filter([:type_source] => (x) -> x=="river", past)
+df = innerjoin(df[:, Not([:magnitude, :time])], 
+               df[:, [:target, :magnitude, :time]], 
+               on=:source=>:target)
+@. df.time += 1
+push!(present, df)
+
+# LANDSLIDEs
+df = filter([:type_source] => (x) -> x=="landslide", past)
+@. df.time += 1
+# generate new landslide if time has come else wait (assume pareto probability distribution ... which is wrong and to be defined at later stage)
+@. df.magnitude = ifelse(df.time > global_time, rand(Pareto(3, 1000)), df.magnitude)
+# reset delay to 3 time units if time has come for a reset
+@. df.time = ifelse(df.time > global_time, global_time + 3, df.time)
+push!(present, df)
+
+# CATCHMENTS
+# current catchment to river is time has come otherwise wait
+df = filter([:type_source] => (x) -> x=="catchment", past)
+@. df.time += 1
+@. df.magnitude = ifelse(df.time > global_time, rand(Pareto(3, 1000)), df.magnitude)
+@. df.time = ifelse(df.time > global_time, global_time + 5, df.time)
+push!(present, df)
+
+# deal with the impact of catchment on rivers by cascading the runoff magnitude to rivers if time has come
+df = filter([:source] => (x) -> x in Set(present[end].target), past)
+# simulate all possible configurations of catchment/river
+df = outerjoin(df, 
+               present[end], # catchment behavior
+               on=:source=>:target, 
+               makeunique=true)
+# if time has come (time > global time), catchment runoff to river ELSE 100 (base line value), 
+@. df.magnitude = ifelse(global_time > df.time_1, # due
+                    df.magnitude_1, 
+                    100) # could be updated to match other nodes
+@. df.time += 1
+push!(present, df[:, [:source, :target, :type_source, :magnitude, :time]])
 
 
+# CONCATENATE PRESENT NETWORK STATE
+# present = reduce(vcat, present)
+# groupby edge pairs and summing the magnitude (add flows)
+present |> 
+    x-> reduce(vcat, x) |>
+    x-> groupby(x, [:source, :target, :type_source]) |> 
+    x-> combine(x, :magnitude => sum => :magnitude)
+# present = combine(gdf, :magnitude => sum)
+# @present groupby(df, [:A, :B]) |> combine(df, :magnitude => sum => :magnitude)
 
-time = 2
+# CONCATENATE PRESENT NETWORK STATE
+present = @chain present begin
+    reduce(vcat, _)
+    groupby([:source, :target, :type_source])
+    combine(:magnitude => sum => :magnitude)
+  end
 
-# # dealing with river nodes
-# singular_events = ["landslide", "catchment"]
-# past_event = filter([:type_source] => (x) -> ~(x in singular_events), past)
-# # present_event = filter([:type_source] => (x) -> ~(x in singular_events), network)
-# continuous_edges = innerjoin(network[:, Not([:magnitude, :delay, :time])], 
-#                     past_event[:, [:target, :magnitude, :delay, :time]], 
-#                     on=[:source=>:target], makeunique=true)
-
-# # dealing with landslide and catchment nodes
-# past_event = filter([:type_source] => (x) -> (x in singular_events), past)
-
-# discrete_edges = innerjoin(network[:, [:source, :target, :type_source]],
-#                     past_event[:, [:target, :magnitude, :delay, :time]], 
-#                     on=[:source => :target])
-
-# # concate dataframes together
-# network_t = vcat(continuous_edges, discrete_edges, past_event) # take into account several edges branching into one node
-# network_t = groupby(network_t, [:source, :target])
-# network_t = combine(network_t, :magnitude => sum)
-
-
-
-begin
-    clock = []
-    network = copy(df)
-    push!(clock, network)
-    past = clock[end]
-    start_time = 0
-    @. network.delay = 1
-    @. network.time = start_time
-end
-
-
-time = 2
-
-
-for edge in eachrow(network)
-    edge.time = time
-
-    if (edge.source in past.target) | (edge.type_source != "landslide")
-        println("Current edge Source : $(edge.source)")
-        println(edge)
-        past_event = past[past.target .== edge.source, :]
-        println("past_event")
-        println(past_event)
-        edge.magnitude = sum(past_event.magnitude)
-        edge.delay = time + 1
-    
-    else 
-        if edge.delay == time
-            edge.magnitude = rand(Pareto(3, 1000))
-            edge.delay = time + 5 
-        end
-    end
-end
-
-push!(clock, network)
-
-
-for i in 1:nrow(network) # access the network one edge at a time
-    @. network.time = time
-    println("PRESENT")
-    println(network[[i], :])
-
-    # access previous events
-    past_event = past[past.target .== network.source[i], :]
-    println("PAST")
-    println(past_event)
-
-    for j in 1:nrow(past_event)
-        addition = []
-        # if past event is landslide and time is due
-        if past_event.type_source[j] == "landslide" && (past_event.delay[j] == time)
-            network[[i], :] = past_event[[j], :] # copy past event to present event
-            network.magnitude[i] = rand(Pareto(3, 1000))
-            network.delay[i] = time + 5 # assuming landslide make 5 time units to impact
-
-        elseif past_event.type_source[j] == "landslide" && (past_event.delay[j] != time)
-            network[[i], :] = past_event[[j], :]# copy past event to present event as is
-            
-        elseif (past_event.type_source[j] != "landslide") && (past_event.delay[j] == time)
-            network.magnitude[i] += past_event.magnitude[j] # add flows from river and catchments
-
-
-
-    end
-end
+  push!(record, present)
