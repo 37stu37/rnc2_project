@@ -18,22 +18,22 @@ begin
     end
 
 
-    function landslides(dataframe)
+    function landslides(dataframe, delay)
         df = filter(:type_source => x -> x=="landslide", dataframe)
         # generate new landslide if time has come else wait (assume pareto probability distribution ... which is wrong and to be defined at later stage)
         @. df.magnitude = ifelse(df.time == df.global_time, rand(Pareto(3, 1000)), df.magnitude)
         # reset delay to 3 time units if time has come for a reset (assume delayed of 3 units of time to trigger landslide) or wait
-        @. df.time = ifelse(df.time == df.global_time, df.time + 3, df.time)
+        @. df.time = ifelse(df.time == df.global_time, df.time + delay, df.time)
 
         push!(present, df)
     end
 
 
-    function catchment(dataframe)
+    function catchment(dataframe, delay)
         # current catchment to river if time has come otherwise wait
         df = filter(:type_source=> x -> x=="catchment", dataframe)
         @. df.magnitude = ifelse(df.time == df.global_time, rand(Pareto(3, 1000)), df.magnitude)
-        @. df.time = ifelse(df.time == df.global_time, df.time + 5, df.time)
+        @. df.time = ifelse(df.time == df.global_time, df.time + delay, df.time)
         push!(present, df)
 
         # deal with the impact of catchment on rivers by cascading the runoff magnitude to rivers if time has come
@@ -44,10 +44,12 @@ begin
                     on=:source=>:target, 
                     makeunique=true)
         # if time has come (time > global time), catchment runoff to river ELSE 100 (base line value), 
-        @. df.magnitude = ifelse(df.time_1 - 5 == df.global_time, # due
+        @. df.magnitude = ifelse(df.time_1 - delay == df.global_time, # due
                             df.magnitude_1, # magnitude of river is magnitude from catchment
                             100) # else magnitude is a base line value of 100 from catchment
         @. df.time += 1
+        # println("df - river / catchment")
+        # println(df)
 
         push!(present, df[:, [:source, :target, :type_source, :magnitude, :time, :global_time]])
     end
