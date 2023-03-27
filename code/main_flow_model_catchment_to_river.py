@@ -79,4 +79,8 @@ for time in range(number_of_hours):
          'sediment_river' : sediment_river
          })
 
+    # get recorded data over the time period
     states_lists.append(states_at_time)
+    
+# get recorded data over the total time period
+results = pd.concat(states_lists)
