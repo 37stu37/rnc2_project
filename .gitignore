@@ -1,0 +1,26 @@
+
+*.csv
+docs/NLRM_subcats/Rangitaiki_subcats.prj
+docs/NLRM_subcats/Rangitaiki_subcats.sbn
+docs/NLRM_subcats/Rangitaiki_subcats.sbx
+docs/NLRM_subcats/Rangitaiki_subcats.shp
+docs/NLRM_subcats/Rangitaiki_subcats.shp.xml
+docs/NLRM_subcats/Rangitaiki_subcats.shx
+docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.gpkg
+docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.gpkg-shm
+docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.gpkg-wal
+docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.qmd
+docs/NLRM_subcats/Tarawera_subcats.cpg
+docs/NLRM_subcats/Tarawera_subcats.dbf
+docs/NLRM_subcats/Tarawera_subcats.prj
+docs/NLRM_subcats/Tarawera_subcats.sbn
+docs/NLRM_subcats/Tarawera_subcats.sbx
+docs/NLRM_subcats/Tarawera_subcats.shp
+docs/NLRM_subcats/Tarawera_subcats.shp.xml
+docs/NLRM_subcats/Tarawera_subcats.shx
+docs/NLRM_subcats/Tarawera_subcats_slope.gpkg
+docs/NLRM_subcats/Tarawera_subcats_updt_crop.gpkg
+docs/NLRM_subcats/Tarawera_subcats_updt_crop.gpkg-shm
+docs/NLRM_subcats/Tarawera_subcats_updt_crop.gpkg-wal
+docs/NLRM_subcats/Tarawera_subcats_updt_crop.qmd
+docs/parameters needed.txt
