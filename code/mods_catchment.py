@@ -22,7 +22,7 @@ def effective_rainfall(ssat, rsa, rt, f1, fsa): # are c1 = f1 and c2 = fsa???
     return reff
 
 
-def catchment_discharge(reff, K, catchment_area, time_period, baseflow, p=1):
+def catchment_discharge(reff, K, catchment_area, baseflow, time_period=1, p=1):
     """
 	calculate discharge using
 	Reff -> effective rainfall
@@ -49,15 +49,15 @@ def catchment_saturation(ssat, reff, discharge):
     return (ssat + reff - discharge)
 
 
-def tephra_runoff(discharge, area, width, slope, subaerial_tephra, vegetation_cste):
+def tephra_runoff(discharge, area, width, slope, vegetation_cste):
     """
 	 Area -> is the catchment area
 	 Width -> catchment width
 	 Slope -> catchment slope
 	 vegetation_cste
+	 y -> tephra loss into the river 
 	 """
     import numpy as np
 
     y = vegetation_cste * (discharge ** 1.12) * (area / width) ** 0.4 * (np.sin(slope)) ** 1.6
-    y_to_stream = np.min(y, subaerial_tephra)
-    return y_to_stream
+    return y
