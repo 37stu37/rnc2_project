@@ -1,5 +1,4 @@
 
-*.csv
 docs/NLRM_subcats/Rangitaiki_subcats.prj
 docs/NLRM_subcats/Rangitaiki_subcats.sbn
 docs/NLRM_subcats/Rangitaiki_subcats.sbx
@@ -36,3 +35,9 @@ docs/MRm Network Model equations_220323.docx
 docs/NLRM_subcats.zip
 docs/NLRM_subcats/Rangitaiki_subcats.cpg
 docs/NLRM_subcats/Rangitaiki_subcats.dbf
+code/data/Catchments_updt.csv
+docs/Catchments_updt.csv
+docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.csv
+.gitignore
+.gitignore
+docs/NLRM_subcats/Tarawera_subcats_updt_crop.csv
