@@ -39,14 +39,20 @@ def catchment_discharge(reff, K, catchment_area, baseflow, time_period=1, p=1):
 
 
 def catchment_saturation(ssat, reff, discharge):
-    """
+	"""
 	calculate the resulting saturation
 	from existing saturation
 	Ssast -> existing saturation
 	Reff -> effective rainfall
 	Q -> discharge
 	"""
-    return (ssat + reff - discharge)
+	if reff != 0:
+		sat = (ssat + reff - discharge)
+	else:
+		# saturation goes back to 0
+		sat = 0
+	
+	return sat
 
 
 def tephra_runoff(discharge, area, width, slope, vegetation_cste):

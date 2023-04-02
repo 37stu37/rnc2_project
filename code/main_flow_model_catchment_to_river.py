@@ -13,7 +13,7 @@ rain_str = ['Sep-Nov', 'Dec-Feb', 'Mar-May', 'Jun-Aug']
 
 df = pd.read_csv("../docs/Catchments_updt_sorted.csv")
 
-saturations = np.full(1000, len(df))
+saturations = np.full(0.1, len(df))
 tephra_deposits = np.ones(len(df)) # ones to test algo
 vegetation_param = np.ones(len(df))
 df['river_flows'] = np.ones(len(df))
@@ -72,7 +72,6 @@ for time in trange(number_of_hours):
                                     areas[i],
                                     lengths[i],
                                     slopes[i],
-                                    # tephra_deposits[i],
                                     vegetation_param[i]) for i in range(len(df))]
 
     tephra_to_stream = list(map(min, zip(tephra_runoffs, tephra_deposits)))
