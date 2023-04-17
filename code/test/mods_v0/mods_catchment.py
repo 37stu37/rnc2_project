@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 def effective_rainfall(ssat, rsa, rt, f1, fsa): # are c1 = f1 and c2 = fsa???
     """
 	calculate effective rainfall for catchment with
@@ -22,7 +19,7 @@ def effective_rainfall(ssat, rsa, rt, f1, fsa): # are c1 = f1 and c2 = fsa???
     return reff
 
 
-def catchment_discharge(reff, K, catchment_area, baseflow, time_period=1, p=1):
+def catchment_discharge(reff, k_factor, catchment_area, baseflow, time_period=1, p=1):
     """
 	calculate discharge using
 	Reff -> effective rainfall
@@ -32,7 +29,7 @@ def catchment_discharge(reff, K, catchment_area, baseflow, time_period=1, p=1):
 	divided by the time increment
 	plus any baseflow
 	"""
-    unitary_discharge = (reff / K) ** (1 / p)
+    unitary_discharge = (reff / k_factor) ** (1 / p)
     discharge = (unitary_discharge * catchment_area) / time_period + baseflow
 
     return discharge
