@@ -34,6 +34,8 @@ def calculate_effective_rainfall(ssat, rsa, rt, f1, fsa):
 def calculate_saturation_in_catchment(ssat, reff, discharge):
     if reff != 0:
         sat = ssat + reff - discharge
+        if sat < 0:
+            sat = 0
     else:
         sat = 0
     return sat
