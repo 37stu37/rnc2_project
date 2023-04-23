@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-# from tqdm import tqdm
+from tqdm import trange
 
 
 def generate_daily_rainfall_amount(num_days):
@@ -53,12 +53,12 @@ def generate_daily_rainfall_amount(num_days):
 
 
 # Define catchments and their corresponding parameters
-catchments = pd.read_csv("/Users/alexdunant/Documents/Github/rnc2_project/docs/Catchments_updt_sorted.csv", index_col=0)
+catchments = pd.read_csv("../../../docs/Catchments_updt_sorted.csv", index_col=0)
 catchments = catchments[catchments['River System'] == 'Rangitaki']
 
 # Define constants
 catchments['max_soil_moisture'] = np.random.randint(200, 400, len(catchments))
-num_days = 365  # timestep (in days)
+num_days = 10  # timestep (in days)
 
 # Define precipitation list (in mm)
 precipitations = generate_daily_rainfall_amount(num_days)
@@ -66,9 +66,8 @@ precipitations = generate_daily_rainfall_amount(num_days)
 # Initialize storage and streamflow arrays
 storage = np.zeros(len(catchments))
 streamflow = np.zeros(len(catchments))
-riverflow = np.zeros(len(catchments))
 
-catchments['riverflow'] = riverflow
+catchments['riverflow'] = 0
 
 # Lists to store results
 list_catchment_storages = []
@@ -78,16 +77,17 @@ list_time = []
 record = []
 
 # Iterate over timesteps
-for t in range(1, num_days):
+for t in trange(1, num_days):
 
-    # move the flow downstream
-    for i in range(len(catchments)):
-        target = catchments['Target_river'].values[i]
-        source_discharge = catchments[catchments['Source_river'] == target]['riverflow']
-        if len(source_discharge) != 0:  # if target is 0 - no source
-            catchments.loc[catchments['Target_river'] == target, 'riverflow'] = source_discharge
-        else:
-            catchments.loc[catchments['Target_river'] == target, 'riverflow'] = 0
+    # move the flow downstream # move by one node every day ... not realistic
+    downstream_flow = dict(zip(catchments["Target_river"], catchments["riverflow"]))
+    # Iterate over the DataFrame and replace values
+    for idx, row in catchments.iterrows():
+        index_value = row['Source_river']
+        if index_value in downstream_flow:
+            catchments.at[idx, 'riverflow'] = downstream_flow[index_value]
+        else:  # if no river node is flowing in the targeted river node, there are no flows
+            catchments.at[idx, 'riverflow'] = 0
 
     # daily precipitation
     P = precipitations[t]
@@ -102,7 +102,7 @@ for t in range(1, num_days):
         Rsa = catchment['rsa']
         area = catchment['Area (m2)']
         S = storage[i]
-        K = 0.5  # picked a random number for hydraulic conductivity of the soil
+        K = 0.05  # picked a (semi)random number for hydraulic conductivity of the soil
 
         if S <= Rsa:
             Reff = c1R * P * area
@@ -113,11 +113,11 @@ for t in range(1, num_days):
         excess = max(0, Reff - (sat - S))
 
         # Calculate infiltration (Proportional coefficient - infiltration rate 'k') and update storage
-        infiltration = k * S * t
+        infiltration = k * storage[i] * (t - (t-1))
         storage[i] += Reff - excess - infiltration
         storage[i] = max(0, storage[i])
 
-        # Calculate streamflow
+        # Calculate streamflow using hydraulic conductivity value of
         streamflow[i] = K * storage[i]
 
     # log the catchment parameters in lists
@@ -125,10 +125,10 @@ for t in range(1, num_days):
     list_catchment_streamflows.append(streamflow)
 
     # Print streamflow values for each catchment
-    print(f"Time: {t} days")
-    for i, catchment in catchments.iterrows():
-        print(f"{catchment['Catchment Name']}: {streamflow[i]:.2f} m3/s")
-    print()
+    # print(f"Time: {t} days")
+    # for i, catchment in catchments.iterrows():
+        # print(f"{catchment['Catchment Name']}: {streamflow[i]:.2f} m3/s")
+    # print()
 
     # create dictionary with new river flows for each node
     new_river_flows = {}
@@ -143,22 +143,23 @@ for t in range(1, num_days):
         else:
             new_river_flows[river_node] = inflow
 
-    # print new river flows for each node
-    for node, flow in new_river_flows.items():
-        print(f"River Node {node}: {flow:.2f} m3/s")
+    # # print new river flows for each node
+    # for node, flow in new_river_flows.items():
+        # print(f"River Node {node}: {flow:.2f} m3/s")
 
     # append the riverflows to dataframe by adding it to old flow
-    new_river_flows = catchments['Source_river'].map(new_river_flows)
-    riverflow += new_river_flows
+    catchments['new_river_flows'] = catchments['Source_river'].map(pd.Series(new_river_flows))
+    catchments['riverflow'] += catchments['new_river_flows']
 
-    list_riverflows.append(riverflow)
+    list_riverflows.append(catchments['riverflow'].values)
     list_time.append(t)
 
     # append all to one dataframe which is then stored
-    df = pd.concat([pd.Series(storage), pd.Series(streamflow), pd.Series(riverflow)], axis=1)
-    df.columns = ['storage', 'streamflow', 'riverflow']
+    df = pd.concat([pd.Series(storage), pd.Series(streamflow)], axis=1)
+    df.columns = ['storage', 'streamflow']
     df['source'] = catchments['Source_river']
     df['target'] = catchments['Target_river']
+    df['riverflow'] = catchments['riverflow']
     df['catchment'] = catchments['Catchment Name']
     df['precipitation'] = P
     df['time'] = t
@@ -168,4 +169,7 @@ for t in range(1, num_days):
 
 results = pd.concat(record)
 
-print('Done')
+# print('Done')
+
+
+plt.plot(results.time, results.riverflow, c='b', lw=0.2)

@@ -35,7 +35,7 @@ docs/MRm Network Model equations_220323.docx
 docs/NLRM_subcats.zip
 docs/NLRM_subcats/Rangitaiki_subcats.cpg
 docs/NLRM_subcats/Rangitaiki_subcats.dbf
-code/data/Catchments_updt.csv
+legacy/data/Catchments_updt.csv
 docs/Catchments_updt.csv
 docs/NLRM_subcats/Rangitaiki_subcats_updt_crop.csv
 .gitignore
