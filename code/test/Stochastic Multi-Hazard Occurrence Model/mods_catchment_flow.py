@@ -87,7 +87,7 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
         area = catchment['Area (m2)']
         S = catchment['storage']
         Sflow = catchment['streamflow']
-        K = 0.05
+        K = 0.1
         
         # Calculate effective rainfall for each catchment
         if S <= Rsa:

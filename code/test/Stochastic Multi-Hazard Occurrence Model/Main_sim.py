@@ -16,19 +16,20 @@ river_network = {}
 water_flow = {}
 keys = catchments.Target_river
 source_nodes = catchments.Source_river
-baseline_river = 30  # baseline value for river flow
+baseline_river = 0  # baseline value for river flow
 catchment_names = catchments['Catchment Name']
 
 # create river network where each edge is a tuple of the form (target_node, flow_rate) and a water flow dict (start
-# with a mean value of 70 m3/s)
+# with a mean value of 0 m3/s)
 for i in range(len(keys)):
     river_network[keys[i]] = {'source_river': source_nodes[i], 'edge_flow': baseline_river,
                               'catchment_name': catchment_names[i]}
     water_flow[keys[i]] = baseline_river
 
 # generate a list of precipitation for the time of simulation (in days)
-num_days = 364
+num_days = 365
 precipitations = generate_daily_rainfall_amount(num_days)
+
 record = []
 df_catchments = catchments.copy()
 
@@ -44,7 +45,7 @@ for t in trange(1, num_days):
     water_flow = catchment_flow_to_river_nodes(df_catchments, water_flow=water_flow)
 
     # simulate river behavior for a number of stepped iteration (hours?) per day
-    water_flow = simulate_river_flow(river_network, water_flow, 24, 0.96)
+    water_flow = simulate_river_flow(river_network, water_flow, 24, 0.967)
 
     # update the new river flow state at the end of the day
     for node in river_network:
@@ -69,7 +70,7 @@ for t in trange(1, num_days):
 print("simulation finished")
 
 
-res = results[["time", "precipitation", "river_flow"]].groupby('time').mean().reset_index()
+res = results[["time", "precipitation", "storage", "river_flow"]].groupby('time').mean().reset_index()
 
 import matplotlib.pyplot as plt
 
@@ -79,16 +80,23 @@ fig, ax1 = plt.subplots()
 # set the x-axis and the first y-axis (precipitation)
 ax1.set_xlabel('Time')
 ax1.set_ylabel('Precipitation', color='blue')
-ax1.plot(res.time, res.precipitation, color='blue')
+ax1.step(res.time, res.precipitation, lw=0.5, color='blue')
 
 # create the second y-axis (discharge)
 ax2 = ax1.twinx()
 ax2.set_ylabel('Discharge', color='red')
 ax2.plot(res.time, res.river_flow, lw=0.3, color='red')
 
+# # create the third y-axis (storage)
+# ax3.set_xlabel('Precipitation', color='blue')
+# ax3.set_ylabel('Storage', color='green')
+# ax3.plot(res.precipitation, res.storage, lw=0.3, color='green')
+
 # set the y-axis color to green
 ax1.tick_params(axis='y', colors='blue')
 ax2.tick_params(axis='y', colors='red')
+# ax3.tick_params(axis='x', colors='blue')
+# ax3.tick_params(axis='y', colors='green')
 
 # set the title of the plot
 plt.title('Precipitation and Discharge vs Time')
