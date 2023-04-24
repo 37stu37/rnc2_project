@@ -73,7 +73,8 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
     Returns:
     - a dictionary representing the storage and streamflow at each catchment after the simulation.
     """
-    my_dict = {}
+    list_S = []
+    list_Sflow = []
 
     for i, catchment in catchments.iterrows():
         name = catchment['Catchment Name']
@@ -105,13 +106,26 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
         # Calculate streamflow using hydraulic conductivity
         Sflow = K * S
 
-        # Store results in a dictionary
-        my_dict[name] = {'storage': S, 'streamflow': Sflow, 'river_node': river}
+        # Store results
+        list_S.append(S)
+        list_Sflow.append(Sflow)
 
-    return my_dict
+    catchments['storage'] = list_S
+    catchments['streamflow'] = list_Sflow
+
+    return catchments
 
 
-def catchment_flow_to_river_nodes(catchment_flow, water_flow):
+def catchment_flow_to_river_nodes(catchments, water_flow):
+
+    catchment_flow = {}
+    keys = catchments['Catchment Name']
+    v1 = catchments['storage'].values
+    v2 = catchments['streamflow'].values
+    v3 = catchments['Target_river'].values
+
+    for i in range(len(keys)):
+        catchment_flow[keys[i]] = {'storage': v1[i], 'streamflow': v2[i], 'river_node': v3[i]}
 
     # create dictionary with new river flows for each node
     new_water_flow = {}
