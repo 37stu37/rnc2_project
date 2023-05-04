@@ -86,7 +86,7 @@ import matplotlib.pyplot as plt
 # create the figure
 fig = plt.figure()
 
-ax1 = fig.add_subplot(2, 1, 1)
+ax1 = fig.add_subplot(1, 1, 1)
 
 # set the x-axis and the first y-axis (precipitation)
 ax1.set_xlabel('Time')
@@ -102,23 +102,8 @@ ax2.plot(res.time, res.river_flow, lw=0.3, color='red')
 ax1.tick_params(axis='y', colors='blue')
 ax2.tick_params(axis='y', colors='red')
 
-# create the second subplot
-ax3 = fig.add_subplot(2, 1, 2)
-ax3.step(res.time, res.precipitation, lw=0.5, color='blue')
-ax3.set_xlabel('Time')
-ax3.set_ylabel('Precipitation', color='blue')
-
-# create the second y-axis (discharge)
-ax4 = ax3.twinx()
-ax4.set_ylabel('Storage', color='green')
-ax4.step(res.time, res.storage, color='green', lw=0.3)
-
-# set the y-axis color to green
-ax3.tick_params(axis='y', colors='blue')
-ax4.tick_params(axis='y', colors='green')
-
 # set the title of the plot
-# plt.title('Precipitation and Discharge vs Time')
+plt.title('Precipitation and Discharge vs Time')
 
 # display the plot
 plt.tight_layout()
