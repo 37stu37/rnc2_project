@@ -19,17 +19,18 @@ def simulate_river_flow(river_network, water_flow, num_iterations, loss_factor):
 
         for node in river_network:
             # Calculate the total inflow of water to this node from river stream and catchment flow
-            source_node = river_network[node]['source_river']
+            target_node = river_network[node]['target_river']
             edge_flow = river_network[node]['edge_flow']
 
-            if source_node in water_flow :
+            if node in water_flow :
                 if iteration == 0: # Add the initial discharge of the river stream
-                    inflow = edge_flow + water_flow[source_node]
+                    inflow = edge_flow + water_flow[node]
                 else:  # Then add only the constant inflow from the catchments (otherwise the baseline flow will
                     # stack up)
-                    inflow = water_flow[source_node] * (loss_factor) # increase water loss as time goes by
+                    inflow = water_flow[node] * (loss_factor) # increase water loss as time goes by
 
-            next_water_flow[node] = inflow
+            next_water_flow[target_node] = inflow
+            next_water_flow[1] = 0
 
         # Update the water flow at each node for the next iteration
         # At this point, the catchment flow has provided inflows and only the river flow remains

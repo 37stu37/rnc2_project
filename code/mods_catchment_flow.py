@@ -122,7 +122,7 @@ def catchment_flow_to_river_nodes(catchments, water_flow, baseflow):
     keys = catchments['Catchment Name']
     v1 = catchments['storage'].values
     v2 = catchments['streamflow'].values
-    v3 = catchments['Target_river'].values
+    v3 = catchments['Source_river'].values
 
     for i in range(len(keys)):
         catchment_flow[keys[i]] = {'storage': v1[i], 'streamflow': v2[i], 'river_node': v3[i]}
@@ -138,6 +138,6 @@ def catchment_flow_to_river_nodes(catchments, water_flow, baseflow):
         # add the current river flow + flow from the catchment
         inflow += water_flow[node]
 
-        new_water_flow[node] = inflow + baseflow
+        new_water_flow[node] = inflow + baseflow # baseflow should be 0 ...
 
     return new_water_flow

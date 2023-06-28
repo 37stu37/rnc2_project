@@ -68,3 +68,6 @@ docs/river_catchment_nodes_sorted.gpkg-shm
 docs/river_catchment_nodes_sorted.gpkg-wal
 legacy/.DS_Store
 docs/report.pdf
+*.gpkg
+*.gpkg-wal
+*.gpkg-shm

@@ -11,8 +11,9 @@ os.chdir("/Users/alexdunant/Library/CloudStorage/OneDrive-DurhamUniversity/workf
 
 # Define catchments and their corresponding parameters
 # catchments = pd.read_csv("../docs/Catchments_updt_sorted.csv", index_col=0)
-catchments = gpd.read_file("../docs/river_catchment_nodes_sorted.gpkg")
+catchments = gpd.read_file("../docs/Catchments_river_nodes.gpkg")
 catchments = catchments[catchments['River System'] == 'Rangitaki']
+catchments = catchments.sort_values('Source_river')
 catchments['streamflow'] = np.zeros(len(catchments))
 catchments['storage'] = np.zeros(len(catchments))
 catchments['max_soil_moisture'] = np.random.randint(200, 400, len(catchments))
@@ -20,21 +21,21 @@ catchments['max_soil_moisture'] = np.random.randint(200, 400, len(catchments))
 # Convert df into a dictionary
 river_network = {}
 water_flow = {}
-keys = catchments.Target_river
-source_nodes = catchments.Source_river
-baseline_river = 70  # baseline value for river flow
+keys = catchments.Source_river
+target_nodes = catchments.Target_river
+baseline_river = 50  # baseline value for river flow
 catchment_names = catchments['Catchment Name']
 
-# create river network where each edge is a tuple of the form (target_node, flow_rate) and a water flow dict (start
+# create river network where each edge ßis a tuple of the form (target_node, flow_rate) and a water flow dict (start
 # with a mean value of 0 m3/s)
 for i in range(len(keys)):
-    river_network[keys[i]] = {'source_river': source_nodes[i], 
+    river_network[keys[i]] = {'target_river': target_nodes[i], 
                               'edge_flow': baseline_river,
                               'catchment_name': catchment_names[i]}
     water_flow[keys[i]] = baseline_river
 
 # generate a list of precipitation for the time of simulation (in days)
-num_days = 365
+num_days = 1000
 precipitations = generate_daily_rainfall_amount(num_days)
 
 record = []
@@ -55,7 +56,7 @@ for t in trange(1, num_days):
 
     # simulate river behavior for a number of stepped iteration (hours?) per day, the last parameter 
     # represent a loss function to prevent flows from stacking up
-    water_flow = simulate_river_flow(river_network, water_flow, 21, 0.95)
+    water_flow = simulate_river_flow(river_network, water_flow, 18, 0.95)
 
     # update the new river flow state at the end of the day
     for node in river_network:
@@ -66,7 +67,7 @@ for t in trange(1, num_days):
 
     #  Record results
     df = pd.concat([pd.Series(river_network.keys()),
-                    pd.Series([river_network[key]['source_river'] for key in river_network]),
+                    pd.Series([river_network[key]['target_river'] for key in river_network]),
                     pd.Series([river_network[key]['edge_flow'] for key in river_network])], axis=1)
     df.columns = ['source', 'target', 'river_flow']
     df['precipitation'] = precipitation
