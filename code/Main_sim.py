@@ -1,11 +1,17 @@
+# %%
 import pandas as pd
+import geopandas as gpd
 import numpy as np
+import os
 
 from mods_catchment_flow import *
 from mod_river_flow import *
 
+os.chdir("/Users/alexdunant/Library/CloudStorage/OneDrive-DurhamUniversity/workfolder/rnc2_project/code")
+
 # Define catchments and their corresponding parameters
-catchments = pd.read_csv("../docs/Catchments_updt_sorted.csv", index_col=0)
+# catchments = pd.read_csv("../docs/Catchments_updt_sorted.csv", index_col=0)
+catchments = gpd.read_file("../docs/river_catchment_nodes_sorted.gpkg")
 catchments = catchments[catchments['River System'] == 'Rangitaki']
 catchments['streamflow'] = np.zeros(len(catchments))
 catchments['storage'] = np.zeros(len(catchments))
@@ -16,7 +22,7 @@ river_network = {}
 water_flow = {}
 keys = catchments.Target_river
 source_nodes = catchments.Source_river
-baseline_river = 0  # baseline value for river flow
+baseline_river = 70  # baseline value for river flow
 catchment_names = catchments['Catchment Name']
 
 # create river network where each edge is a tuple of the form (target_node, flow_rate) and a water flow dict (start
@@ -34,19 +40,22 @@ precipitations = generate_daily_rainfall_amount(num_days)
 record = []
 df_catchments = catchments.copy()
 
+
+#%% run algo                          
 # Iterate over timesteps
 for t in trange(1, num_days):
     # generate daily rainfall amount
     precipitation = precipitations[t]
 
-    # NLRRM model for the catchment - storage and streamflow for each catchment
+    # NLRRM model for the catchment - storage and streamflow updated for each catchment
     df_catchments = simulate_catchment_reservoir_flow(df_catchments, precipitation, dtime=1)
 
     # Create the total flow being routed from catchments to each river node per day
-    water_flow = catchment_flow_to_river_nodes(df_catchments, water_flow=water_flow)
+    water_flow = catchment_flow_to_river_nodes(df_catchments, water_flow=water_flow, baseflow=baseline_river)
 
-    # simulate river behavior for a number of stepped iteration (hours?) per day
-    water_flow = simulate_river_flow(river_network, water_flow, 24, 0.967)
+    # simulate river behavior for a number of stepped iteration (hours?) per day, the last parameter 
+    # represent a loss function to prevent flows from stacking up
+    water_flow = simulate_river_flow(river_network, water_flow, 21, 0.95)
 
     # update the new river flow state at the end of the day
     for node in river_network:
@@ -71,20 +80,25 @@ for t in trange(1, num_days):
 print("simulation finished")
 
 
-res = results[["time", "precipitation", "storage", "river_flow"]].groupby('time').mean().reset_index()
+res = results[["time", "precipitation", "storage", "river_flow"]].groupby('time').max().reset_index()
 
 
 
 
+
+#%%
 ################################################################
 # Plot results
 ################################################################
 
 import matplotlib.pyplot as plt
+import scienceplots
+
+plt.style.use('science')
 
 # create the figure and the axes
 # create the figure
-fig = plt.figure()
+fig = plt.figure(figsize=(12,3))
 
 ax1 = fig.add_subplot(1, 1, 1)
 
@@ -96,7 +110,7 @@ ax1.step(res.time, res.precipitation, lw=0.5, color='blue')
 # create the second y-axis (discharge)
 ax2 = ax1.twinx()
 ax2.set_ylabel('Discharge', color='red')
-ax2.plot(res.time, res.river_flow, lw=0.3, color='red')
+ax2.plot(res.time, res.river_flow, linestyle='--', lw=0.5, color='red')
 
 # set the y-axis color to green
 ax1.tick_params(axis='y', colors='blue')
@@ -109,3 +123,19 @@ plt.title('Precipitation and Discharge vs Time')
 plt.tight_layout()
 plt.show()
 
+
+# %%
+fig = plt.figure(figsize=(5,5))
+ax1 = fig.add_subplot(2, 1, 1)
+ax2 = fig.add_subplot(2, 1, 2)
+
+ax1.hist(results.river_flow, edgecolor="red", facecolor="none", bins=20, label="discharge")
+ax1.legend(loc="upper right")
+ax2.hist(results.storage, edgecolor="green", facecolor="none", bins=20, label="storage")
+ax2.legend(loc="upper right")
+
+# display the plot
+plt.tight_layout()
+plt.show()
+
+# %%

@@ -78,7 +78,7 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
 
     for i, catchment in catchments.iterrows():
         name = catchment['Catchment Name']
-        river = catchment['Target_river']
+#       river = catchment['Target_river']
         sat = catchment['max_soil_moisture']
         k = catchment['Proportional coefficient (K)']
         c1R = catchment['f1']
@@ -89,11 +89,11 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
         Sflow = catchment['streamflow']
         K = 0.1
         
-        # Calculate effective rainfall for each catchment
+        # Calculate effective rainfall for each catchment (x the area makes the storage irrelevant ...)
         if S <= Rsa:
-            Reff = c1R * precipitation * area
+            Reff = c1R * precipitation #* area
         else:
-            Reff = (c1R + (c2 - c1R) * ((S - Rsa) / (sat - Rsa))) * precipitation * area
+            Reff = (c1R + (c2 - c1R) * ((S - Rsa) / (sat - Rsa))) * precipitation #* area
             
         # Calculate excess rainfall
         excess = max(0, Reff - (sat - S))
@@ -103,7 +103,7 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
         S += Reff - excess - infiltration
         S = max(0, S)
         
-        # Calculate streamflow using hydraulic conductivity
+        # Calculate streamflow using hydraulic conductivity (K)
         Sflow = K * S
 
         # Store results
@@ -116,7 +116,7 @@ def simulate_catchment_reservoir_flow(catchments, precipitation, dtime):
     return catchments
 
 
-def catchment_flow_to_river_nodes(catchments, water_flow):
+def catchment_flow_to_river_nodes(catchments, water_flow, baseflow):
 
     catchment_flow = {}
     keys = catchments['Catchment Name']
@@ -138,6 +138,6 @@ def catchment_flow_to_river_nodes(catchments, water_flow):
         # add the current river flow + flow from the catchment
         inflow += water_flow[node]
 
-        new_water_flow[node] = inflow
+        new_water_flow[node] = inflow + baseflow
 
     return new_water_flow
